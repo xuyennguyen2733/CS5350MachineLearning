@@ -28,7 +28,6 @@ class DecisionTree:
     """
     import numpy as np
 
-    # print(attributes)
     if len(np.unique(y)) == 1:
       node = Node(y[0])
       return node
@@ -41,37 +40,64 @@ class DecisionTree:
     
     bestSplitAttribute = self._split(X, y, attributes)
     bestSplitValues = np.unique(X[bestSplitAttribute])
-    # print(bestSplitValues)
-    # print('split on ',bestSplitAttribute)
     root = Node(bestSplitAttribute)
     for v in bestSplitValues:
-      # print(v)
       root.addChild(v)
       X_v = X[X[bestSplitAttribute]==v]
       y_v = y[X[bestSplitAttribute]==v]
       if (len(X_v)==0):
-        # print('empty')
         unique_labels, unique_count = np.unique(y, return_counts=True)
         max_label = unique_labels[np.argmax(unique_count)]
         node = Node(max_label)
         root.addChild(v,node)
       else:
         newAttributes = np.array(attributes)
-        print(newAttributes[newAttributes != bestSplitAttribute])
-        root.addChild(v, self.ID3(X_v, y_v, newAttributes[newAttributes != bestSplitAttribute]))
-        
+        root.addChild(v, self._ID3_build(X_v, y_v, newAttributes[newAttributes != bestSplitAttribute]))
+    self.root = root
     return root
-    # print(root.children)
-    # for attribute in attributes:
+  
+  def _ID3_build(self, X, y, attributes=None):
+    """
+    Build the decision tree using the provided training data.
 
+    Parameters:
+    - X (array-like, shape = [n_samples, n_features]): Training data.
+    - y (array-like, shape = [n_samples]): Training lables.
+    """
+    import numpy as np
 
-    return 'testing'
+    if len(np.unique(y)) == 1:
+      node = Node(y[0])
+      return node
+    
+    if len(attributes) == 0:
+      unique_labels, unique_count = np.unique(y, return_counts=True)
+      max_label = unique_labels[np.argmax(unique_count)]
+      node = Node(max_label)
+      return node
+    
+    bestSplitAttribute = self._split(X, y, attributes)
+    bestSplitValues = np.unique(X[bestSplitAttribute])
+    root = Node(bestSplitAttribute)
+    for v in bestSplitValues:
+      root.addChild(v)
+      X_v = X[X[bestSplitAttribute]==v]
+      y_v = y[X[bestSplitAttribute]==v]
+      if (len(X_v)==0):
+        unique_labels, unique_count = np.unique(y, return_counts=True)
+        max_label = unique_labels[np.argmax(unique_count)]
+        node = Node(max_label)
+        root.addChild(v,node)
+      else:
+        newAttributes = np.array(attributes)
+        root.addChild(v, self._ID3_build(X_v, y_v, newAttributes[newAttributes != bestSplitAttribute]))
+
+    return root
 
   def _split(self, X, y, attributes):
     currentEntropy = self._entropy(y)
     attribGains = []
     total = len(y)
-    # print("spliting",attributes)
     for a in attributes:
       values, count = np.unique(X[a], return_counts=True)
       gain = currentEntropy
@@ -83,9 +109,6 @@ class DecisionTree:
       attribGains.append(gain)
     return attributes[np.argmax(attribGains)]
 
-
-
-
   def predict(self, X):
     """
     Predict the labels for the given data.
@@ -96,16 +119,15 @@ class DecisionTree:
     Returns:
     - preidictions (array-like, shape = [n_shamples]): Predicted values.
     """
-    
     splitAttribute = self.root.attribute
     splitLabel = X[splitAttribute]
     currentNode = self.root.children[splitLabel]
-    while (currentNode != None):
+    while (currentNode.children != None):
       splitAt = currentNode.attribute
-      splitLabel = input[splitAt]
+      splitLabel = X[splitAt]
       currentNode = currentNode.children[splitLabel]
 
-    return splitLabel
+    return currentNode.attribute
 
 
   def _build_tree(self, X, y, depth):
@@ -123,7 +145,7 @@ class DecisionTree:
     """
     pass
 
-  def _entropy(self, y ,filter=None):
+  def _entropy(self, y):
     """
     Calculate the entropy of a set of target values.
 
@@ -134,7 +156,6 @@ class DecisionTree:
     """
     import numpy as np
     import math
-    if not(filter == None): return None
     unique_value = np.unique(y)
     total = len(y)
     entropy = 0
@@ -204,29 +225,14 @@ attributes = ['Outlook','Temperature','Humidity','Wind']
 X = np.rec.fromarrays(X, names=attributes)
 
 # X.dtype.names = attributes
-y = [
-  ['-'],
-  ['-'],
-  ['+'],
-  ['+'],
-  ['+'],
-  ['-'],
-  ['+'],
-  ['-'],
-  ['+'],
-  ['+'],
-  ['+'],
-  ['+'],
-  ['+'],
-  ['-']
-]
+y = ['-','-','+','+','+','-','+','-','+','+','+','+','+','-']
 y = np.array(y)
 
 myTree = DecisionTree()
 root = myTree.ID3(X, y, attributes)
-print(root.attribute)
-for node in root.children:
-  print(node)
+print(X[3])
+print(myTree.predict(X[3]))
+
 
 # column_headers = ['buying','maint','doors','persons','lug_boot','safety','label']
 # data = np.genfromtxt(".\\car-4\\train.csv", dtype=None, delimiter=",", names=column_headers, encoding=None)
