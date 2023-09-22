@@ -335,8 +335,8 @@ report = {
 }
 # print("y test",y_test)
 # print("x test", X_test[15])
-print('CARS')
-print('               Entropy     Gini_Index     Majority_error')
+print('QUESTION 2 - WORKING WITH CARS DATA')
+print('               Entropy     Majority_error     Gini_Index')
 for impurity_method in ['entropy', 'gini_index', 'majority_error']:
   accuracy_train = 0
   accuracy_test = 0
@@ -368,7 +368,7 @@ for impurity_method in ['entropy', 'gini_index', 'majority_error']:
   report['testing_error'][impurity_method] = '{:.4f}%'.format(100-(100*accuracy_test/6))
 
 for row in report:
-  report_line = row + '   ' + report[row]['entropy'] + '       ' + report[row]['gini_index'] + '            ' + report[row]['majority_error']
+  report_line = row + '   ' + report[row]['entropy'] + '       ' + report[row]['majority_error'] + '            ' + report[row]['gini_index']
   print(report_line)
 
 # PREDICTION REPORT FOR BANK
