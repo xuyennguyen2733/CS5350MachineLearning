@@ -57,21 +57,17 @@ class DecisionTree:
 
     bestSplitAttribute = self._split(X, y, attributes)
     bestSplitValues = np.unique(self.possibleValues[bestSplitAttribute])
-    # print('Split at',bestSplitAttribute)
     root = Node(bestSplitAttribute)
     for v in bestSplitValues:
-      # print('Checking v =',v)
       root.addChild(v)
       X_v = X[X[bestSplitAttribute]==v]
       y_v = y[X[bestSplitAttribute]==v]
       if (len(X_v)==0):
         unique_labels, unique_count = np.unique(y, return_counts=True)
         max_label = unique_labels[np.argmax(unique_count)]
-        # print('v =',v,'does not appear in data. Mapping to most common label',max_label)
         node = Node(max_label)
         root.addChild(v,node)
       else:
-        # print('Continue to split')
         newAttributes = np.array(attributes)
         root.addChild(v, self._ID3_build(X_v, y_v, layer+1, newAttributes[newAttributes != bestSplitAttribute]))
     self.root = root
@@ -99,25 +95,19 @@ class DecisionTree:
 
     bestSplitAttribute = self._split(X, y, attributes)
     bestSplitValues = np.unique(self.possibleValues[bestSplitAttribute])
-    # print('Split at',bestSplitAttribute)
     root = Node(bestSplitAttribute)
     for v in bestSplitValues:
-      # print('Checking v =',v)
       root.addChild(v)
       X_v = X[X[bestSplitAttribute]==v]
       y_v = y[X[bestSplitAttribute]==v]
       if (len(X_v)==0):
         unique_labels, unique_count = np.unique(y, return_counts=True)
         max_label = unique_labels[np.argmax(unique_count)]
-        # print('v =',v,'does not appear in data. Mapping to most common label',max_label)
         node = Node(max_label)
         root.addChild(v,node)
-        # print(root.children)
       else:
-        # print('Continue to split')
         newAttributes = np.array(attributes)
         root.addChild(v, self._ID3_build(X_v, y_v, layer+1, newAttributes[newAttributes != bestSplitAttribute]))
-        # print(root.children)
     return root
 
   def _split(self, X, y, attributes):
@@ -145,19 +135,12 @@ class DecisionTree:
     Returns:
     - preidictions (array-like, shape = [n_shamples]): Predicted values.
     """
-    # print('root:',self.root.attribute)
     splitAttribute = self.root.attribute
     splitLabel = X[splitAttribute]
-    # print('label under',splitAttribute,':',splitLabel)
     currentNode = self.root.children[splitLabel]
-    # print('Given',splitAttribute,' =',splitLabel,'split at', currentNode.attribute)
     while (currentNode.children != None):
-      # print('node:', currentNode.attribute)
-      # print('children:', currentNode.children)
       splitAt = currentNode.attribute
       splitLabel = X[splitAt]
-      # print('label under', splitAt,':', splitLabel)
-      # print(splitAt, splitLabel)
       currentNode = currentNode.children[splitLabel]
 
     return currentNode.attribute
@@ -315,7 +298,6 @@ y_train = data[y_label]
 
 myTrees = []
 labels, count = np.unique(y_train, return_counts=True)
-# node = myTree.ID3(X_train, y_train, x_labels)
 accurate = 0
 
 data = np.genfromtxt(".\\car-4\\test.csv", dtype=None, delimiter=",", names=column_headers, encoding=None)
@@ -333,42 +315,34 @@ report = {
     'majority_error': []
   }
 }
-# print("y test",y_test)
-# print("x test", X_test[15])
 print('QUESTION 2 - WORKING WITH CARS DATA')
-print('               Entropy     Majority_error     Gini_Index')
+print('                    Information_Gain     Majority_Error     Gini_Index')
 for impurity_method in ['entropy', 'gini_index', 'majority_error']:
   accuracy_train = 0
   accuracy_test = 0
   for depth in range(1,7):
-    # print('Decision tree with depth =',depth,'using', impurity_method)
     myTree = DecisionTree(possibleValues, depth, criterion=impurity_method)
     root = myTree.ID3(X_train, y_train, x_labels)
     accurate_train = 0
     accurate_test = 0
 
     for i in range(0,len(y_train)):
-    # print('test number',i)
       if (y_train[i]==myTree.predict(X_train[i])):
         accurate_train+=1
-    # print('     Training Data Accuracy: {:.3f}%'.format(100*accurate_train/len(y_train)).replace('.000',''))
 
     accuracy_train += accurate_train/len(y_train)
 
     for i in range(0,len(y_test)):
-    # print('test number',i)
       if (y_test[i]==myTree.predict(X_test[i])):
         accurate_test+=1
 
     accuracy_test += accurate_test/len(y_test)
     
-    # report['testing_error'][impurity_method].append(accurate_test/len(y_test))
-    # print('     Testing Data Accuracy: {:.3f}%'.format(100*accurate_test/len(y_test)).replace('.000',''))
   report['training_error'][impurity_method] = '{:.4f}%'.format(100-(100*accuracy_train/6))
   report['testing_error'][impurity_method] = '{:.4f}%'.format(100-(100*accuracy_test/6))
 
 for row in report:
-  report_line = row + '   ' + report[row]['entropy'] + '       ' + report[row]['majority_error'] + '            ' + report[row]['gini_index']
+  report_line = row + '        ' + report[row]['entropy'] + '             ' + report[row]['majority_error'] + '           ' + report[row]['gini_index']
   print(report_line)
 
 # PREDICTION REPORT FOR BANK
