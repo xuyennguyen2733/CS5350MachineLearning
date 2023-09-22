@@ -5,7 +5,7 @@ This is a Decision Tree class that allows for building decision trees from train
 """
 
 class DecisionTree:
-  def __init__(self, maxDepth = None, minSplit=2, criterion='entropy'):
+  def __init__(self, possibleValues, maxDepth = None, minSplit=2, criterion='entropy'):
     """
     Initialize a decision tree.
 
@@ -14,8 +14,16 @@ class DecisionTree:
     - minSplit (int): The minimum number of samples required to split on an internal node.
     - criterion (str): The criterion used for spitting ('entropy','gini_index', or 'majority_error')
     """
-    self.maxDepth = maxDepth
-    self.criterion = criterion
+    import sys
+    self.possibleValues = possibleValues
+    if maxDepth == None:
+      self.maxDepth = sys.maxsize
+    else:
+      self.maxDepth = maxDepth
+    if criterion in ['entropy', 'gini_index', 'majority_error']:   
+      self.criterion = criterion 
+    else:
+      raise ValueError('{} is not a valid criterion!'.format(criterion))
     self.root = None
 
   def ID3(self, X, y, attributes=None):
@@ -28,35 +36,48 @@ class DecisionTree:
     """
     import numpy as np
 
+    layer = 0
+
     if len(np.unique(y)) == 1:
       node = Node(y[0])
       return node
     
-    if len(attributes) == 0:
+    if len(attributes) == 0 or layer == self.maxDepth:
       unique_labels, unique_count = np.unique(y, return_counts=True)
       max_label = unique_labels[np.argmax(unique_count)]
       node = Node(max_label)
       return node
     
+    if (self.criterion == 'entropy'):
+      self.impurityFunc = self._entropy
+    elif (self.criterion == 'gini_index'):
+      self.impurityFunc = self._gini_index
+    else:
+      self.impurityFunc = self._majority_error
+
     bestSplitAttribute = self._split(X, y, attributes)
-    bestSplitValues = np.unique(X[bestSplitAttribute])
+    bestSplitValues = np.unique(self.possibleValues[bestSplitAttribute])
+    # print('Split at',bestSplitAttribute)
     root = Node(bestSplitAttribute)
     for v in bestSplitValues:
+      # print('Checking v =',v)
       root.addChild(v)
       X_v = X[X[bestSplitAttribute]==v]
       y_v = y[X[bestSplitAttribute]==v]
       if (len(X_v)==0):
         unique_labels, unique_count = np.unique(y, return_counts=True)
         max_label = unique_labels[np.argmax(unique_count)]
+        # print('v =',v,'does not appear in data. Mapping to most common label',max_label)
         node = Node(max_label)
         root.addChild(v,node)
       else:
+        # print('Continue to split')
         newAttributes = np.array(attributes)
-        root.addChild(v, self._ID3_build(X_v, y_v, newAttributes[newAttributes != bestSplitAttribute]))
+        root.addChild(v, self._ID3_build(X_v, y_v, layer+1, newAttributes[newAttributes != bestSplitAttribute]))
     self.root = root
     return root
   
-  def _ID3_build(self, X, y, attributes=None):
+  def _ID3_build(self, X, y, layer, attributes=None):
     """
     Build the decision tree using the provided training data.
 
@@ -70,41 +91,46 @@ class DecisionTree:
       node = Node(y[0])
       return node
     
-    if len(attributes) == 0:
+    if len(attributes) == 0 or layer == self.maxDepth:
       unique_labels, unique_count = np.unique(y, return_counts=True)
       max_label = unique_labels[np.argmax(unique_count)]
       node = Node(max_label)
       return node
-    
+
     bestSplitAttribute = self._split(X, y, attributes)
-    bestSplitValues = np.unique(X[bestSplitAttribute])
+    bestSplitValues = np.unique(self.possibleValues[bestSplitAttribute])
+    # print('Split at',bestSplitAttribute)
     root = Node(bestSplitAttribute)
     for v in bestSplitValues:
+      # print('Checking v =',v)
       root.addChild(v)
       X_v = X[X[bestSplitAttribute]==v]
       y_v = y[X[bestSplitAttribute]==v]
       if (len(X_v)==0):
         unique_labels, unique_count = np.unique(y, return_counts=True)
         max_label = unique_labels[np.argmax(unique_count)]
+        # print('v =',v,'does not appear in data. Mapping to most common label',max_label)
         node = Node(max_label)
         root.addChild(v,node)
+        # print(root.children)
       else:
+        # print('Continue to split')
         newAttributes = np.array(attributes)
-        root.addChild(v, self._ID3_build(X_v, y_v, newAttributes[newAttributes != bestSplitAttribute]))
-
+        root.addChild(v, self._ID3_build(X_v, y_v, layer+1, newAttributes[newAttributes != bestSplitAttribute]))
+        # print(root.children)
     return root
 
   def _split(self, X, y, attributes):
-    currentEntropy = self._entropy(y)
+    impurityVal = self.impurityFunc(y)
     attribGains = []
     total = len(y)
     for a in attributes:
       values, count = np.unique(X[a], return_counts=True)
-      gain = currentEntropy
+      gain = impurityVal
       for v in values:
-        val_entropy = self._entropy(y[X[a]==v])
+        val_purity = self.impurityFunc(y[X[a]==v])
         val_count = count[values == v]
-        gain -= (val_count/total)*val_entropy
+        gain -= (val_count/total)*val_purity
 
       attribGains.append(gain)
     return attributes[np.argmax(attribGains)]
@@ -119,12 +145,19 @@ class DecisionTree:
     Returns:
     - preidictions (array-like, shape = [n_shamples]): Predicted values.
     """
+    # print('root:',self.root.attribute)
     splitAttribute = self.root.attribute
     splitLabel = X[splitAttribute]
+    # print('label under',splitAttribute,':',splitLabel)
     currentNode = self.root.children[splitLabel]
+    # print('Given',splitAttribute,' =',splitLabel,'split at', currentNode.attribute)
     while (currentNode.children != None):
+      # print('node:', currentNode.attribute)
+      # print('children:', currentNode.children)
       splitAt = currentNode.attribute
       splitLabel = X[splitAt]
+      # print('label under', splitAt,':', splitLabel)
+      # print(splitAt, splitLabel)
       currentNode = currentNode.children[splitLabel]
 
     return currentNode.attribute
@@ -165,7 +198,7 @@ class DecisionTree:
 
     return entropy
 
-  def _gini_index(self, y, filter=None):
+  def _gini_index(self, y):
     """
     Calculate the gini index value of a set of target values.
 
@@ -174,9 +207,17 @@ class DecisionTree:
     - filter (tuple of the form (attribute_name, attribute_value) or None): Specifies the specific value of the specific attribute whose gini index value to be calculated. The type of attribute_name is str and that of the attribute_value is any. If None, calculate the overall gini index value of the entire set.
 
     """
-    pass
+    import numpy as np
+    unique_value = np.unique(y)
+    total = len(y)
+    gini = 1
+    for val in unique_value:
+      count = len(y[y == val])
+      gini -= pow((count/total),2)
 
-  def _majority_error(self, y, filter=None):
+    return gini
+
+  def _majority_error(self, y):
     """
     Calculate the majority error of a set of target values.
 
@@ -185,7 +226,15 @@ class DecisionTree:
     - filter (tuple of the form (attribute_name, attribute_value) or None): Specifies the specific value of the specific attribute whose majority error to be calculated. The type of attribute_name is str and that of the attribute_value is any. If None, calculate the overall majority error of the entire set.
 
     """
-    pass
+    import numpy as np
+    unique_value = np.unique(y)
+    total = len(y)
+    maxCount = 0
+    for val in unique_value:
+      count = len(y[y==val])
+      maxCount = max(maxCount,count)
+    return (total-maxCount)/total
+    
 
 class Node:
   def __init__(self, attribute=''):
@@ -202,39 +251,169 @@ class Node:
 
 import numpy as np
 
-X = [
-  ['S','H','H','W'],
-  ['S','H','H','S'],
-  ['O','H','H','W'],
-  ['R','M','H','W'],
-  ['R','C','N','W'],
-  ['R','C','N','S'],
-  ['O','C','N','S'],
-  ['S','M','H','W'],
-  ['S','C','N','W'],
-  ['R','M','N','W'],
-  ['S','M','N','S'],
-  ['O','M','H','S'],
-  ['O','H','N','W'],
-  ['R','M','H','S']
-]
+# X = [
+#   ['S','H','H','W'],
+#   ['S','H','H','S'],
+#   ['O','H','H','W'],
+#   ['R','M','H','W'],
+#   ['R','C','N','W'],
+#   ['R','C','N','S'],
+#   ['O','C','N','S'],
+#   ['S','M','H','W'],
+#   ['S','C','N','W'],
+#   ['R','M','N','W'],
+#   ['S','M','N','S'],
+#   ['O','M','H','S'],
+#   ['O','H','N','W'],
+#   ['R','M','H','S']
+# ]
 
-X = np.array(X)
-X = X.T
-attributes = ['Outlook','Temperature','Humidity','Wind']
-X = np.rec.fromarrays(X, names=attributes)
+# possibleValues = {
+#   'Outlook': ['S','O','R'],
+#   'Temperature': ['T','M','C'],
+#   'Humidity': ['H','N','L'],
+#   'Wind': ['S','W']
+# }
 
-# X.dtype.names = attributes
-y = ['-','-','+','+','+','-','+','-','+','+','+','+','+','-']
-y = np.array(y)
+# X = np.array(X)
+# X = X.T
+# attributes = ['Outlook','Temperature','Humidity','Wind']
+# X = np.rec.fromarrays(X, names=attributes)
 
-myTree = DecisionTree()
-root = myTree.ID3(X, y, attributes)
-print(X[3])
-print(myTree.predict(X[3]))
+# # X.dtype.names = attributes
+# y = ['-','-','+','+','+','-','+','-','+','+','+','+','+','-']
+# y = np.array(y)
 
+# myTree = DecisionTree()
+# myTree.ID3(X,y,attributes,possibleValues)
+# X[-1][2]='L'
+# X[-1][0]='S'
+# print(myTree.predict(X[-1]))
 
-# column_headers = ['buying','maint','doors','persons','lug_boot','safety','label']
+# PREDICTION REPORT FOR CAR
+column_headers = ['buying','maint','doors','persons','lug_boot','safety','label']
+possibleValues = {
+  'buying':   ['vhigh', 'high', 'med', 'low'],
+  'maint':    ['vhigh', 'high', 'med', 'low'],
+  'doors':    ['2', '3', '4', '5more'],
+  'persons':  ['2', '4', 'more'],
+  'lug_boot': ['small', 'med', 'big'],
+  'safety':   ['low', 'med', 'high'],
+}
+
+data = np.genfromtxt(".\\car-4\\train.csv", dtype=None, delimiter=",", names=column_headers, encoding=None)
+
+x_labels = []
+num_features = len(column_headers)-1
+for i in range(0,num_features):
+  x_labels.append( column_headers[i])
+
+y_label = column_headers[-1]
+
+X_train = data[x_labels]
+y_train = data[y_label]
+
+myTrees = []
+labels, count = np.unique(y_train, return_counts=True)
+# node = myTree.ID3(X_train, y_train, x_labels)
+accurate = 0
+
+data = np.genfromtxt(".\\car-4\\test.csv", dtype=None, delimiter=",", names=column_headers, encoding=None)
+X_test = data[x_labels]
+y_test = data[y_label]
+report = {
+  'training_error': {
+    'entropy': '',
+    'gini_index': '',
+    'majority_error': ''
+  },
+  'testing_error': {
+    'entropy': [],
+    'gini_index': [],
+    'majority_error': []
+  }
+}
+# print("y test",y_test)
+# print("x test", X_test[15])
+print('CARS')
+print('               Entropy     Gini_Index     Majority_error')
+for impurity_method in ['entropy', 'gini_index', 'majority_error']:
+  accuracy_train = 0
+  accuracy_test = 0
+  for depth in range(1,7):
+    # print('Decision tree with depth =',depth,'using', impurity_method)
+    myTree = DecisionTree(possibleValues, depth, criterion=impurity_method)
+    root = myTree.ID3(X_train, y_train, x_labels)
+    accurate_train = 0
+    accurate_test = 0
+
+    for i in range(0,len(y_train)):
+    # print('test number',i)
+      if (y_train[i]==myTree.predict(X_train[i])):
+        accurate_train+=1
+    # print('     Training Data Accuracy: {:.3f}%'.format(100*accurate_train/len(y_train)).replace('.000',''))
+
+    accuracy_train += accurate_train/len(y_train)
+
+    for i in range(0,len(y_test)):
+    # print('test number',i)
+      if (y_test[i]==myTree.predict(X_test[i])):
+        accurate_test+=1
+
+    accuracy_test += accurate_test/len(y_test)
+    
+    # report['testing_error'][impurity_method].append(accurate_test/len(y_test))
+    # print('     Testing Data Accuracy: {:.3f}%'.format(100*accurate_test/len(y_test)).replace('.000',''))
+  report['training_error'][impurity_method] = '{:.4f}%'.format(100-(100*accuracy_train/6))
+  report['testing_error'][impurity_method] = '{:.4f}%'.format(100-(100*accuracy_test/6))
+
+for row in report:
+  report_line = row + '   ' + report[row]['entropy'] + '       ' + report[row]['gini_index'] + '            ' + report[row]['majority_error']
+  print(report_line)
+
+# PREDICTION REPORT FOR BANK
+
+# '''
+# 1 - age (numeric)
+#    2 - job : type of job (categorical: ) 
+#    3 - marital : marital status (categorical: ; note: "divorced" means divorced or widowed)
+#    4 - education (categorical: )
+#    5 - default: has credit in default? (binary: "yes","no")
+#    6 - balance: average yearly balance, in euros (numeric) 
+#    7 - housing: has housing loan? (binary: "yes","no")
+#    8 - loan: has personal loan? (binary: "yes","no")
+#    # related with the last contact of the current campaign:
+#    9 - contact: contact communication type (categorical: "unknown","telephone","cellular") 
+#   10 - day: last contact day of the month (numeric)
+#   11 - month: last contact month of year (categorical: "jan", "feb", "mar", ..., "nov", "dec")
+#   12 - duration: last contact duration, in seconds (numeric)
+#    # other attributes:
+#   13 - campaign: number of contacts performed during this campaign and for this client (numeric, includes last contact)
+#   14 - pdays: number of days that passed by after the client was last contacted from a previous campaign (numeric, -1 means client was not previously contacted)
+#   15 - previous: number of contacts performed before this campaign and for this client (numeric)
+#   16 - poutcome: outcome of the previous marketing campaign (categorical: "unknown","other","failure","success")
+# '''
+
+# column_headers = ['age','job','marital','education','default','balance','housing','loan','contact','day','month','duration','campaign','pdays','previous','poutcome']
+# possibleValues = {
+# 'age': [],
+# 'job': ["admin.","unknown","unemployed","management","housemaid","entrepreneur","student","blue-collar","self-employed","retired","technician","services"],
+# 'marital': ["married","divorced","single"],
+# 'education': [],
+# 'default': [],
+# 'balance': [],
+# 'housing': [],
+# 'loan': [],
+# 'contact': [],
+# 'day': [],
+# 'month': [],
+# 'duration': [],
+# 'campaign': [],
+# 'pdays': [],
+# 'previous': [],
+# 'poutcome': []
+# }
+
 # data = np.genfromtxt(".\\car-4\\train.csv", dtype=None, delimiter=",", names=column_headers, encoding=None)
 
 # x_labels = []
@@ -244,72 +423,65 @@ print(myTree.predict(X[3]))
 
 # y_label = column_headers[-1]
 
-# X = data[x_labels]
-# y = data[y_label]
+# X_train = data[x_labels]
+# y_train = data[y_label]
 
-# myTree = DecisionTree()
-# labels, count = np.unique(y, return_counts=True)
-# node = myTree.ID3(X, y, x_labels)
-# print()
-# print(data[(data['buying']=='high') & (data['label']=='unacc')][0][:])
+# myTrees = []
+# labels, count = np.unique(y_train, return_counts=True)
+# # node = myTree.ID3(X_train, y_train, x_labels)
+# accurate = 0
 
-
-# import math
-# total = 4
-# plus = 3
-# minus = total - plus
-# entropy = -(plus/total)*math.log2(plus/total)-(minus/total)*math.log2(minus/total)
-
-# def entropy(total, plus):
-#   if total == plus or plus == 0:
-#     return 0
-#   minus = total - plus
-#   entropy = -(plus/total)*math.log2(plus/total)-(minus/total)*math.log2(minus/total)
-
-#   return entropy 
-
-# data = {
-#   'total': 5+5/14,
-#   0: 2,
-#   1: 3+5/14
+# data = np.genfromtxt(".\\car-4\\test.csv", dtype=None, delimiter=",", names=column_headers, encoding=None)
+# X_test = data[x_labels]
+# y_test = data[y_label]
+# report = {
+#   'training_error': {
+#     'entropy': '',
+#     'gini_index': '',
+#     'majority_error': ''
+#   },
+#   'testing_error': {
+#     'entropy': [],
+#     'gini_index': [],
+#     'majority_error': []
+#   }
 # }
-# data['entropy'] = entropy(data['total'], data[1])
+# # print("y test",y_test)
+# # print("x test", X_test[15])
+# print('               Entropy     Gini_Index     Majority_error')
+# for impurity_method in ['entropy', 'gini_index', 'majority_error']:
+#   accuracy_train = 0
+#   accuracy_test = 0
+#   for depth in range(1,7):
+#     # print('Decision tree with depth =',depth,'using', impurity_method)
+#     myTree = DecisionTree(possibleValues, depth, criterion=impurity_method)
+#     root = myTree.ID3(X_train, y_train, x_labels)
+#     accurate_train = 0
+#     accurate_test = 0
 
-# attributes = [('Temperature',[('H', 0, 0),('M', 3+5/14, 2+4/14),('C', 2, 1)]), ('Humidity',[('H', 2, 1), ('N', 3+5/14, 2+5/14),('L',0,0)]), ('Wind',[('W', 3+5/14, 3+5/14),('S', 2, 0)])]
+#     for i in range(0,len(y_train)):
+#     # print('test number',i)
+#       if (y_train[i]==myTree.predict(X_train[i])):
+#         accurate_train+=1
+#     # print('     Training Data Accuracy: {:.3f}%'.format(100*accurate_train/len(y_train)).replace('.000',''))
 
-# '''
-# O   T   H   W   Play?
-# R   M   H   W   +
-# R   C   N   W   +
-# R   C   N   S   -
-# R   M   N   W   +
-# R   M   H   S   -
-# R   M   N   W   +       5/14
-# '''
+#     accuracy_train += accurate_train/len(y_train)
 
-# maxGain = 0
-# maxGainName = ''
-# for attribute in attributes:
-#   attributeName, values = attribute
-#   data[attributeName] = {}
-#   print('\\\\\\\\For', attributeName)
-#   gainStr = '\\\\Information Gain: ${:.3f} '.format(data['entropy'])
-#   gain = data['entropy']
-  
-#   for value in values:
-#     valueName, total, plus = value
-#     minus = total - plus
-#     valueDict = {'total': total, 'entropy': entropy(total, plus), 0: minus, 1: plus}
-#     data[attributeName][valueName] = valueDict
-#     gainStr += '- (\\frac{{{:.3f}}}{{{:.3f}}})({:.3f}) '.format(total,data['total'],valueDict['entropy'])
-#     gain -= valueDict['entropy']*(total/data['total'])
-#     print('\\\\$H({}) = -(\\frac{{{:.3f}}}{{{:.3f}}})log_2(\\frac{{{:.3f}}}{{{:.3f}}}) - (\\frac{{{:.3f}}}{{{:.3f}}})log_2(\\frac{{{:.3f}}}{{{:.3f}}}) = {:.3f}$'.format(valueName, plus,total,plus,total,minus,total,minus,total,valueDict['entropy']).replace('.000',''))
-  
-#   if gain > maxGain:
-#     maxGain = gain
-#     maxGainName = attributeName
+#     for i in range(0,len(y_test)):
+#     # print('test number',i)
+#       if (y_test[i]==myTree.predict(X_test[i])):
+#         accurate_test+=1
 
-#   gainStr += '= {:.3}$'.format(gain) 
-#   print(gainStr.replace('.000',''))
-# print('\\\\The best feature is {}'.format(maxGainName))
+#     accuracy_test += accurate_test/len(y_test)
+    
+#     # report['testing_error'][impurity_method].append(accurate_test/len(y_test))
+#     # print('     Testing Data Accuracy: {:.3f}%'.format(100*accurate_test/len(y_test)).replace('.000',''))
+#   report['training_error'][impurity_method] = '{:.4f}%'.format(100-(100*accuracy_train/6))
+#   report['testing_error'][impurity_method] = '{:.4f}%'.format(100-(100*accuracy_test/6))
+
+
+# # print(report)
+# for row in report:
+#   report_line = row + '   ' + report[row]['entropy'] + '       ' + report[row]['gini_index'] + '            ' + report[row]['majority_error']
+#   pr
 
