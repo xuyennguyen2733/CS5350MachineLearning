@@ -310,7 +310,50 @@ class DecisionTree:
       count = len(y[y==val])
       maxCount = max(maxCount,count)
     return (total-maxCount)/total
-    
+  
+  def AdaBoost(self, X, y, T):
+    threshold = 1e-10
+    # adaBoostTree = DecisionTree(self.possibleValues,1)
+    num_examples = 10
+    weights = np.full((T+1,num_examples), 1/num_examples, dtype=float)
+    # weights = np.full((T+1,len(y)), 1/len(y), dtype=float)
+    errors = np.zeros(T)
+    votes = np.zeros(T)
+    votes = np.zeros(T)
+    self.stumps = np.full(T, None)
+    for t in range(0,T):
+      self.stumps[t] = DecisionTree(self.possibleValues,1)
+      
+      self.stumps[t].ID3(X,y)
+      y_predict = np.zeros(len(y))
+      for i in range (0, len(y)):
+        y_predict[i] = self.stumps[t].predict(X[i])
+        if y[i] != y_predict[i]:
+          errors[t] += weights[t][i]
+      y_predict = np.zeros(num_examples)
+      if errors[t] == 0:
+        errors[t] = threshold
+      votes[t] = 1/2 * math.log((1-errors[t])/errors[t])
+      for i in range(0, num_examples):
+        weights[t+1][i] = weights[t][i] * math.exp(-votes[t] * y[i] * y_predict[i])
+      for i in range(0, num_examples):
+        weights[t+1][i] = weights[t][i] * math.exp(-votes[t] * subY[i] * y_predict[i])
+      weights[t+1] = weights[t+1]/np.sum(weights[t+1])
+    self.stumps_dict[T] = self.stumps
+    self.votes = votes
+    self.errors = errors
+    self.weights = weights 
+  
+  def AdaBoostPredict(self, X):
+    final = 0
+    for stump, vote in zip(self.stumps, self.votes):
+      final += vote * stump.predict(X)
+    return np.sign(final)
+  
+  def BaggedTree(self, X, y):
+      random_indices = np.random.choice(len(X), size=num_examples, replace=False)
+      subX = X[random_indices]
+      subY = y[random_indices]
 
 class Node:
   def __init__(self, attribute=''):
@@ -324,5 +367,3 @@ class Node:
 
   def next(self, childAttribute):
     return self.children[childAttribute]
-
-
