@@ -10,7 +10,7 @@ class Standard_Perceptron:
   def train(self, X, y):
     num_examples = X.shape[0]
     num_features = X.shape[1]
-    weights = np.full(num_features, np.round(1/num_examples, 2), dtype=float)
+    weights = np.zeros(num_features)
     for epoch in range (1, self.max_epochs):
       wrong_pred = 0
       # Shuffles the data
@@ -22,7 +22,7 @@ class Standard_Perceptron:
         if (y_shuffled[i] * np.dot(weights,X_shuffled[i]) <= 0):
           wrong_pred += 1
           weights = weights + self.learning_rate * y_shuffled[i] * X_shuffled[i]
-      print(wrong_pred, 'wrong out of',num_examples)
+      # print(wrong_pred, 'wrong out of',num_examples)
     self.weights = weights
     
     return weights
@@ -43,7 +43,7 @@ class Voted_Perceptron:
   def train(self, X, y):
     num_examples = X.shape[0]
     num_features = X.shape[1]
-    weights = np.full(num_features, np.round(1/num_examples, 2), dtype=float)
+    weights = np.zeros(num_features)
     vote = 1
     weight_list = [weights]
     vote_list = []
@@ -73,7 +73,7 @@ class Voted_Perceptron:
           vote += 1
           # print('new weight',weights)
         # print('weights',weights,'vote',vote)
-      print(wrong_pred, 'wrong out of',num_examples)
+      # print(wrong_pred, 'wrong out of',num_examples)
     vote_list.append(vote)
     self.weight_list = weight_list
     self.vote_list = vote_list
@@ -87,6 +87,48 @@ class Voted_Perceptron:
       prediction += self.vote_list[i] * np.sign(np.dot(self.weight_list[i],X))
       # print('weights',self.weight_list[i], 'vote', self.vote_list[i], 'prediction:',prediction)
     return np.sign(prediction)
+
+  def _shuffle(self, len):
+    shuffled = np.arange(len)
+    np.random.shuffle(shuffled)
+    return shuffled
+  
+class Averaged_Perceptron:
+  def __init__(self, max_epochs=10, learning_rate = 0.1):
+    self.max_epochs = max_epochs
+    self.learning_rate = learning_rate
+
+  def train(self, X, y):
+    num_examples = X.shape[0]
+    num_features = X.shape[1]
+    weights = np.zeros(num_features)
+    average = np.zeros(num_features)
+    for epoch in range (1, self.max_epochs):
+      wrong_pred = 0
+      # # Shuffles the data
+      # shuffled_indices = self._shuffle(len(y))
+      # X_shuffled = X[shuffled_indices]
+      # y_shuffled = y[shuffled_indices]
+
+      X_shuffled = X
+      y_shuffled = y
+
+      # for i in shuffled_indices:
+      for i in range(num_examples):
+        # print('prediction:',np.dot(weights,X_shuffled[i]), 'where y=',y_shuffled[i])
+        if (y_shuffled[i] * np.dot(weights,X_shuffled[i]) <= 0):
+          # print('mistake on',y_shuffled[i])
+          wrong_pred += 1
+          weights = weights + self.learning_rate * y_shuffled[i] * X_shuffled[i]
+        average += weights
+          # print('new weight',weights)
+        # print('weights',weights,'vote',vote)
+      # print(wrong_pred, 'wrong out of',num_examples)
+    self.average = average
+    return average
+  
+  def predict(self, X):
+    return np.sign(np.dot(self.average,X))
 
   def _shuffle(self, len):
     shuffled = np.arange(len)

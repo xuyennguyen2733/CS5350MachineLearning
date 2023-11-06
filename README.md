@@ -59,10 +59,36 @@ For example: obtaining the X_train and Y_train data in the desire format
 
    \*\*\* Make sure X_test and Y_test also has the same format as X_train and Y_train
 
-ADABOOST
+ADABOOST (unable to correctly implement)
 
 Make sure to transform the output values to {-1,1} if they are not in that format already.
 For example, the data set for bank marketing has output 'no' and 'yes'. Map these values to -1 and 1 as follow:
 map = {'no': -1, 'yes': 1}
 y_train = np.vectorize(map.get)(y)
 Then use y_train as normal
+
+BAGGING (unable to implement)
+
+RANDOM FOREST (unable to implement)
+
+PERCEPTRON
+
+1. Data processing:
+   Make sure your data meet the following requirements:
+
+   - All values are numerical
+   - Lables are 1 or -1
+   - data.shape must return (m,n) where m is the number of examples and n is the number of features
+   - Input data X and labels y must be store in two separate variables
+
+2. Training the model:
+
+   model = STANDARD_PERCEPTRON(epoch_num, learning_rate) (epoch_num is defaulted to 10, while learning rate is defaulted to 0.1)
+   weight = model.train(X,y)
+
+Can replace STANDARD_PERCEPTRON with VOTED_PERCEPTRON or AVERAGED_PERCEPTRON
+For VOTED_PERCEPTRON, the returned value isn't a single weight vector but a list of tuples of weight vectors and their corresponding votes
+
+3. Predict using an input:
+
+   prediction = model.predict(x) (x is a single input vector of length n, i.e. n features)
