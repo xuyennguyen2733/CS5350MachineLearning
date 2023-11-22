@@ -1,9 +1,7 @@
 import numpy as np
-import sys
-import math
 
 class StochasticSubgradient:
-  def __init__(self, schedule, max_epochs=10, learning_rate = 2, c = 1, a = 2):
+  def __init__(self, schedule, max_epochs=10, learning_rate = 0.1, c = 1, a = 0.01):
     self.schedule = schedule
     self.max_epochs = max_epochs
     self.c = c

@@ -1,5 +1,5 @@
 import numpy as np
-from svm import StochasticSubgradient
+from Primal_SVM import StochasticSubgradient
 
 data_train = np.genfromtxt("bank-note\\train.csv", delimiter=",", unpack=True)
 data_train = data_train.T
@@ -82,7 +82,7 @@ for c, c_str in zip(c_arr, c_strs):
 print()
 
 print("***************************")
-print("2c. STOCHASTIC_SUBGRADIENT: model parameters")
+print("2c. STOCHASTIC_SUBGRADIENT: Comparison")
 print("***************************")
 print()
 print(f'{"C":<20} \t{"Model Parameter 1":<40} \t{"Model Parameter 2:":<40} \t{"Difference"}')
