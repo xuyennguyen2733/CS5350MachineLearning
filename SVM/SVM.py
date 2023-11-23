@@ -75,7 +75,7 @@ class DualSVM:
     solution = minimize(objective, init_alpha, method='SLSQP', bounds = bound_constraint, constraints=sum_constraint)
 
     alpha_star = solution.x
-    w_star = np.sum(np.dot(alpha_star, y) * X, axis=0)
+    w_star = np.sum((alpha_star * y)[:, np.newaxis] * X, axis=0)
     bias = np.mean(y - np.dot(X, w_star))
 
     self.alpha_star = alpha_star
@@ -103,7 +103,7 @@ class GaussianKernelSVM:
     
     def objective(alpha):
       return 0.5 * np.sum(np.outer(alpha * y, alpha * y) * K) - np.sum(alpha)
-    
+    tol = 1e-5
     sum_constraint = {'type': 'eq', 'fun': lambda alpha: np.dot(alpha, y)}
     bound_constraint = [(0, self.c) for i in range(0, num_examples)]
     init_alpha = np.ones(num_examples) * 1e-20
@@ -112,21 +112,19 @@ class GaussianKernelSVM:
     # init_alpha = np.random.uniform(0, self.c, num_examples)
     solution = minimize(objective, init_alpha, method='SLSQP', bounds = bound_constraint, constraints=sum_constraint)
     alpha_star = solution.x
-    w_star = np.sum(np.dot(alpha_star, y) * X, axis=0)
-    bias = np.mean(y - np.dot(X, w_star))
+    support_indices = np.where(alpha_star > tol)[0]
+    self.alpha_star = alpha_star[support_indices]
+    self.X = X[support_indices]
+    self.y = y[support_indices]
+    self.bias = self._calculate_bias()
 
-    self.alpha_star = alpha_star
-    self.weights = w_star
-    self.bias = bias
-    self.X = X
-    self.y = y
-
-    return self._concat(self.weights, self.bias)
+    return self.alpha_star
   
   def predict(self, X):
-    K = np.sum(np.exp(np.sum(-np.subtract(X,self.X)**2/self.learning_rate,axis=-1)))
-    alpha_y = np.dot(self.alpha_star,self.y)
-    return np.sign(alpha_y * K + self.bias)
+    difference = np.subtract(self.X,X)
+    K = np.exp(np.sum(-difference**2/self.learning_rate,axis=-1))
+    alpha_y = self.alpha_star*self.y
+    return np.sign(np.sum(alpha_y * K) + self.bias)
   
   def _concat(self, vector, bias):
     concat_vector = np.append(vector, bias)
@@ -136,3 +134,14 @@ class GaussianKernelSVM:
     differences = X[:, np.newaxis, :] - X[np.newaxis, :, :]
     K = np.exp(np.sum(-differences**2/learning_rate, axis=-1))
     return K
+  
+  def _calculate_bias(self):
+    inner_sum = np.sum(
+        self.alpha_star * self.y * np.exp(
+            np.sum(-np.subtract(self.X[:, np.newaxis, :], self.X) ** 2 / self.learning_rate, axis=-1)
+        ),
+        axis=-1
+    )
+    outer_sum = np.sum(self.y - inner_sum)
+    
+    return outer_sum / len(self.y)

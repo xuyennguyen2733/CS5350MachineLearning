@@ -85,7 +85,7 @@ print("***************************")
 print("2c. STOCHASTIC_SUBGRADIENT: Comparison")
 print("***************************")
 print()
-print(f'{"C":<20} \t{"Model Parameter 1":<40} \t{"Model Parameter 2:":<40} \t{"Difference"}')
+print(f'{"C":<20} \t{"[w, bias] 1":<40} \t{"[w, bias] 2:":<40} \t{"Difference"}')
 for i in range(0,len(c_strs)):
   c_str = c_strs[i]
   error1 = np.array2string(subgradient_model_params_1[i], precision=2, separator=' ', suppress_small=True)
@@ -200,12 +200,43 @@ for c_str in c_strs:
   for learning_rate in learning_rates[1:]:
     report += f'\t{common_sv_count[(learning_rate, c_str)]:<10}'
   print(report)
-# for key in common_sv_count:
-#   print(key, common_sv_count[key])
 
 
+# # *************************
+# # TEST SECTION 
+# # *************************
+# def predict(alpha, X, y, bias, x_test):
+#   print('PREDICTION')
+#   difference = -np.subtract(x_test,X)
+#   print('x_i - x', difference)
+#   K = np.exp(np.sum(difference**2/learning_rate,axis=-1))
+#   alpha_y = alpha*y
+#   print("K(xi,X)",K)
+#   print("a_i * y_i", alpha_y)
+#   print("a_i * y_i * K(x_i,X)", alpha_y * K)
+#   print("sum", np.sum(alpha_y * K))
+#   return np.sign(np.sum(alpha_y * K) + bias)
 
-# learning_rate = 0.1
-# print(learning_rate)
-# svm = GaussianKernelSVM(c_arr[0],learning_rate)
-# svm.train(X_train, y_train)
+# def objective(alpha, X, y, learning_rate):
+#   print('OBJECTIVE')
+#   K = _Gaussian_Kernel_Matrix(X, learning_rate)
+#   print('K',K)
+#   return 0.5 * np.sum(np.outer(alpha * y, alpha * y) * K) - np.sum(alpha)
+# def _Gaussian_Kernel_Matrix(X, learning_rate):
+#   differences = X[:, np.newaxis, :] - X[np.newaxis, :, :]
+#   print('x_i - x_j', differences)
+#   K = np.exp(np.sum(-differences**2/learning_rate, axis=-1))
+#   return K
+# def calculate_bias(X, y, learning_rate):
+#   K_support = _Gaussian_Kernel_Matrix(X, learning_rate)
+#   bias = np.mean(y - np.dot(K_support.T, alpha * y))
+#   return bias
+
+
+# X=np.array([[1,1],[2,2],[3,3],[4,4],[5,5]])
+# y = np.array([-1,1,-1,1,1])
+# alpha = np.full(len(y),0.01)
+# bias = 0.05
+# x_test = np.array([1,1])
+# print(predict(alpha, X, y, bias, x_test))
+# print(objective(alpha, X, y, learning_rate))
