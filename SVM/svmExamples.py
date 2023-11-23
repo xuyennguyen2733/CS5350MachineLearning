@@ -1,5 +1,5 @@
 import numpy as np
-from Primal_SVM import StochasticSubgradient
+from SVM import StochasticSubgradient, DualSVM, GaussianKernelSVM
 
 data_train = np.genfromtxt("bank-note\\train.csv", delimiter=",", unpack=True)
 data_train = data_train.T
@@ -108,62 +108,104 @@ for i in range(0,len(c_strs)):
   error1 = subgradient_test_error_1[i]
   error2 = subgradient_test_error_2[i]
   print(f"{c_str:<20} \t{error1:<40.4f} \t{error2:<40.4f} \t{abs(error1-error2):.4f}")
+print()
+
+print("***************************")
+print("3a. DUAL SVM")
+print("***************************")
+print()
+feature_weights = []
+bias = []
+print(f'{"C":<10} \t{"Feature Weights":<50} \t{"Bias"} \t{"Testing Error"}')
+for c, c_str in zip(c_arr, c_strs):
+  test_error = 0
+  svm = DualSVM(c)
+  svm.train(X_train, y_train)
+  feature_weights.append(svm.weights)
+  bias.append(svm.bias)
+  formatted_weights = np.array2string(svm.weights, separator=' ', suppress_small=True, formatter={'float_kind': '{: .4e}'.format})
+  # print(svm.weights)
+  for i in range (0, len(y_test)):
+    prediction = svm.predict(X_test[i])
+    if (prediction*y_test[i] <= 0):
+      test_error+=1/len(y_test)
+  print(f'{c_str:<10} \t{formatted_weights:<50} \t{svm.bias:.4f} \t{test_error:.4f}')
+print()
+
+print("***************************")
+print("3b. DUAL SVM with GAUSSIAN KERNEL")
+print("***************************")
+print()
+print("Testing and Training Errors for Each C and Gamma Settings:")
+print()
+learning_rates = [0.1, 0.5, 1, 5, 100]
+alpha_vectors = {}
+print(f'{"Learning Rate":<10} \t{"C = {}".format(c_strs[0]):<30} \t{"C = {}".format(c_strs[1]):<30} \t{"C = {}".format(c_strs[2]):<10}')
+for learning_rate in learning_rates:
+  kernel_train_error = []
+  kernel_test_error = []
+  for c, c_str in zip(c_arr,c_strs):
+    test_error = 0
+    train_error = 0
+    svm = GaussianKernelSVM(c,learning_rate)
+    svm.train(X_train, y_train)
+    alpha_vectors[(learning_rate, c_str)] = svm.alpha_star
+    for i in range (0, len(y_test)):
+      prediction = svm.predict(X_test[i])
+      if (prediction*y_test[i] <= 0):
+        test_error+=1/len(y_test)
+    for i in range (0, len(y_train)):
+      prediction = svm.predict(X_train[i])
+      if (prediction*y_train[i] <= 0):
+        train_error+=1/len(y_train)
+    kernel_train_error.append(train_error)
+    kernel_test_error.append(test_error)
+  print(f'{learning_rate:<10} \t{"train = {:.4f}, test = {:.4f}".format(kernel_train_error[0], kernel_test_error[0]):<30} \t{"train = {:.4f}, test = {:.4f}".format(kernel_train_error[1], kernel_test_error[1]):<30} \t{"train = {:.4f}, test = {:.4f}".format(kernel_train_error[2], kernel_test_error[2]):<30}')
+print()
+
+print("***************************")
+print("3c. SUPPORT VECTORS")
+print("***************************")
+print()
+print('Number of support vectors:')
+print()
+report_sv_count_head = f'{"C":<10}'
+for learning_rate in learning_rates:
+  report_sv_count_head += f'\t{"Learning Rate = {}".format(learning_rate):<20}'
+print(report_sv_count_head)
+tol = 1e-5
+common_sv_count = {}
+prev_sv_indices = None
+for c_str in c_strs:
+  report_sv_count = f'{c_str:<10}'
+  for learning_rate in learning_rates:
+    alpha = alpha_vectors[(learning_rate,c_str)]
+    sv_indices = np.where(alpha > tol)[0]
+    if (prev_sv_indices is not None):
+      common_sv_count[(learning_rate, c_str)] = len(np.intersect1d(sv_indices, prev_sv_indices))
+    prev_sv_indices = sv_indices
+    sv_count = len(sv_indices)
+    report_sv_count += f'\t{"{}".format(sv_count):<20}'
+  print(report_sv_count)
+
+print()
+report_common_sv_head = f'{"C":<10} \t{learning_rates[0]} - {learning_rates[1]:<5}'
+for i in range(1, len(learning_rates)-1):
+  report_common_sv_head += f'\t{learning_rates[i]} - {learning_rates[i+1]:<5}'
+print("Number of common support vectors between consecutive learning rates:")
+print()
+print(report_common_sv_head)
+for c_str in c_strs:
+  report = f'{c_str:<10}'
+  for learning_rate in learning_rates[1:]:
+    report += f'\t{common_sv_count[(learning_rate, c_str)]:<10}'
+  print(report)
+# for key in common_sv_count:
+#   print(key, common_sv_count[key])
 
 
 
-
-# print("learning rate:", learning_rate)
-# print()
-# print("********************")
-# print("a. STANDARD PERCEPTRON")
-# print("********************")
-# standard = Standard_Perceptron(10, learning_rate)
-# standard_weights = standard.train(X_train, y_train)
-# print("weight vector:",standard_weights)
-# standard_error = 0
-# for x, y in zip(X_test, y_test):
-#   prediction = standard.predict(x)
-#   if (prediction*y <= 0):
-#     standard_error+=1/len(y_test)
-# print("average error: ", standard_error)
-# print()
-
-# print("********************")
-# print("b. VOTED PERCEPTRON")
-# print("********************")
-# voted = Voted_Perceptron(10, learning_rate)
-# voted_weight_vote = voted.train(X_train, y_train)
-# voted_error = 0
-# print()
-# print("List of weight vector and count:")
-# print()
-# print(f"{'Weight Vector':<40} \t{'Vote'}")
-# count = 1
-# for i in range(len(voted_weight_vote)):
-#     weight = voted_weight_vote[i][0]
-#     vote = voted_weight_vote[i][1]
-#     formatted_weight = np.array2string(weight, precision=6, separator=' ', suppress_small=True)
-#     print(f"{formatted_weight:<40} \t{vote}")
-#     # print(f"{count} & ${weight}$ & {vote} \\\\")
-#     count += 1
-# for x, y in zip(X_test, y_test):
-#   prediction = voted.predict(x)
-#   if (prediction*y <= 0):
-#     voted_error+=1/len(y_test)
-# print()
-# print("average error: ", voted_error)
-# print()
-
-# print("********************")
-# print("c. AVERAGED PERCEPTRON")
-# print("********************")
-# averaged = Averaged_Perceptron(10, learning_rate)
-# averaged_weights = averaged.train(X_train, y_train)
-# print("weight vector:",averaged_weights)
-# averaged_error = 0
-# for x, y in zip(X_test, y_test):
-#   prediction = averaged.predict(x)
-#   if (prediction*y <= 0):
-#     averaged_error+=1/len(y_test)
-# print("average error: ", averaged_error)
-# print()
+# learning_rate = 0.1
+# print(learning_rate)
+# svm = GaussianKernelSVM(c_arr[0],learning_rate)
+# svm.train(X_train, y_train)
