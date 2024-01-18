@@ -79,7 +79,7 @@ PERCEPTRON
    - All values are numerical
    - Lables are 1 or -1
    - data.shape must return (m,n) where m is the number of examples and n is the number of features
-   - Input data X and labels y must be store in two separate variables
+   - Input data X and labels y must be storeD in two separate variables
 
 2. Training the model:
 
@@ -88,6 +88,34 @@ PERCEPTRON
 
 Can replace STANDARD_PERCEPTRON with VOTED_PERCEPTRON or AVERAGED_PERCEPTRON
 For VOTED_PERCEPTRON, the returned value isn't a single weight vector but a list of tuples of weight vectors and their corresponding votes
+
+3. Predict using an input:
+
+   prediction = model.predict(x) (x is a single input vector of length n, i.e. n features)
+
+SVM
+
+1. Data processing:
+   Make sure your data meet the following requirements:
+
+   - All values are numerical
+   - Lables are 1 or -1
+   - data.shape must return (m,n) where m is the number of examples and n is the number of features
+   - Input data X and labels y must be stored in two separate variables
+
+   For StochasticSubgradient(), prepare a learning schedule function that takes in 3 parameters: learning_rate, decay_rate, and epoch respectively, and returns the new learning rate.
+   Note: include the decay_rate as the second parameter of the function regardless of whether or not the formula uses one.
+
+2. Training the model:
+
+   subgradient_model = StochasticSubgradient(schedule, max_epochs, learning_rate, c, a) (default values: max_epochs=10, learning_rate = 0.1, c = 1, a = 0.01)
+   subgradient_model.train(X,y) (return weights)
+
+   dual_model = DualSVM(c) (default value: c = 1)
+   dual_model.train(X,y) (returns [weights, bias])
+
+   gaussian_model = GaussianKernelSVM(c, learning_rate) (default values: c=1, learning_rate=0.01)
+   gaussian_model.train(X,y) (returns alpha\*)
 
 3. Predict using an input:
 

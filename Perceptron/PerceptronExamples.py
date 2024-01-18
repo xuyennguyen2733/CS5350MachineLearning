@@ -1,13 +1,13 @@
 import numpy as np
 from Perceptron import Standard_Perceptron, Voted_Perceptron, Averaged_Perceptron
 
-data_train = np.genfromtxt("bank-note\\train.csv", delimiter=",", unpack=True)
+data_train = np.genfromtxt("bank-note\train.csv", delimiter=",", unpack=True)
 data_train = data_train.T
 X_train = data_train[:,:-1]
 y_train = data_train[:,-1]
 y_train[y_train==0] = -1
 
-data_test = np.genfromtxt("bank-note\\test.csv", delimiter=",", unpack=True)
+data_test = np.genfromtxt("bank-note\test.csv", delimiter=",", unpack=True)
 data_test = data_test.T
 X_test = data_test[:,:-1]
 y_test = data_test[:,-1]
