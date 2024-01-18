@@ -7,7 +7,7 @@ The DecisionTree class constructor takes in 4 parameters:
 3. criterion (optional): defaulted to 'entropy', a string that specifies the method for splitting data. Accepted values include 'entropy', 'gini_index', and 'majority_error'.
 4. unknownIsMissing (optional): defaulted to 'False', specifies whether to treat 'unknown' values as a type of value under certain feature or as a missing value.
 
-HOW TO LEARN A TREE
+How To Learn a Tree
 
 First, initialize a tree object. For example:
 
@@ -69,7 +69,26 @@ Then use y_train as normal
 
 BAGGING (unable to implement)
 
-RANDOM FOREST (unable to implement)
+RANDOM FOREST
+
+Prerequisit: DecisionTree Class
+
+Create a RandomForest object:
+
+1. The constructor takes in at least 1 parameter: all possible values of the database, which should be a dictionary of the form <attribute>: <unique_value1, unique_value2, tetc.>
+2. Optional parameters include:
+
+- max_depth: decision tree maximum depth. Defaulted to 100
+- criterion: method of calculating data purity. Defaulted to 'entropy'. Options include: 'entropy', 'gini_index', 'majority_error'
+- unknown: a string representing data value that should be treated as unknown data. Defaulted to None, meaning all data values are treated as valid categories
+- num_trees: number of random decision trees to make. Defaulted to 10
+- num_features: number of random features to use to build each decision tree. Defaulted to 3
+
+Train and Predict:
+
+forest = RandomForest(possible_values)
+forest.train(train_X, train_y) // data for X and y should be in the same format as the data used for decision tree
+prediction = forest.predict(test_X) // testing input should be a single entry instead of a list of multiple entries
 
 PERCEPTRON
 
@@ -120,3 +139,5 @@ SVM
 3. Predict using an input:
 
    prediction = model.predict(x) (x is a single input vector of length n, i.e. n features)
+
+NEURAL NETWORK (Unable to implement)
